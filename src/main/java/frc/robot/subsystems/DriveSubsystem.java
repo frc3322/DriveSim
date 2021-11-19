@@ -71,10 +71,16 @@ public class DriveSubsystem extends SubsystemBase {
   private Field2d m_fieldSim;
   private ADXRS450_GyroSim m_gyroSim;
 
+  private double rightVoltage;
+  private double leftVoltage;
+
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     leftFollower.follow(leftLeader);
     rightFollower.follow(rightLeader);
+
+    leftVoltage = 0;
+    rightVoltage = 0;
 
     resetEncoders();
     m_odometry = new DifferentialDriveOdometry(Rotation2d.fromDegrees(getHeading()));
@@ -118,9 +124,9 @@ public class DriveSubsystem extends SubsystemBase {
     // and write the simulated positions and velocities to our simulated encoder and gyro.
     // We negate the right side so that positive voltages make the right side
     // move forward.
-    m_drivetrainSimulator.setInputs(
-        leftLeader.get() * RobotController.getBatteryVoltage(),
-        -rightLeader.get() * RobotController.getBatteryVoltage());
+    m_drivetrainSimulator.setInputs(leftVoltage, rightVoltage);
+        // leftLeader.get() * RobotController.getBatteryVoltage(),
+        // -rightLeader.get() * RobotController.getBatteryVoltage());
     m_drivetrainSimulator.update(0.020);
 
     m_leftEncoderSim.setPosition(m_drivetrainSimulator.getLeftPositionMeters());
@@ -193,6 +199,9 @@ public class DriveSubsystem extends SubsystemBase {
     }
     leftLeader.setVoltage(leftVolts);
     rightLeader.setVoltage(-rightVolts);
+
+    leftVoltage = leftVolts;
+    rightVoltage = rightVolts;
     m_drive.feed();
   }
 
