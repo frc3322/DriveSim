@@ -6,6 +6,10 @@ package frc.robot.subsystems;
 
 import java.util.List;
 
+import com.revrobotics.CANEncoder;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.PWMVictorSPX;
@@ -18,6 +22,7 @@ import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.CANEncoderSim;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
@@ -38,34 +43,19 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.VecBuilder;
 
 public class DriveSubsystem extends SubsystemBase {
-  // The motors on the left side of the drive.
-  private final SpeedControllerGroup m_leftMotors =
-      new SpeedControllerGroup(
-          new PWMVictorSPX(DriveConstants.kLeftMotor1Port),
-          new PWMVictorSPX(DriveConstants.kLeftMotor2Port));
-
-  // The motors on the right side of the drive.
-  private final SpeedControllerGroup m_rightMotors =
-      new SpeedControllerGroup(
-          new PWMVictorSPX(DriveConstants.kRightMotor1Port),
-          new PWMVictorSPX(DriveConstants.kRightMotor2Port));
+  private final CANSparkMax leftLeader = new CANSparkMax(DriveConstants.kLeftMotor1Port, MotorType.kBrushless);
+  private final CANSparkMax leftFollower = new CANSparkMax(DriveConstants.kLeftMotor2Port, MotorType.kBrushless);
+  private final CANSparkMax rightLeader = new CANSparkMax(DriveConstants.kRightMotor1Port, MotorType.kBrushless);
+  private final CANSparkMax rightFollower = new CANSparkMax(DriveConstants.kRightMotor2Port, MotorType.kBrushless);
 
   // The robot's drive
-  private final DifferentialDrive m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
+  private final DifferentialDrive m_drive = new DifferentialDrive(leftLeader, rightLeader);
 
   // The left-side drive encoder
-  private final Encoder m_leftEncoder =
-      new Encoder(
-          DriveConstants.kLeftEncoderPorts[0],
-          DriveConstants.kLeftEncoderPorts[1],
-          DriveConstants.kLeftEncoderReversed);
+  private final CANEncoder m_leftEncoder = leftLeader.getEncoder();
 
   // The right-side drive encoder
-  private final Encoder m_rightEncoder =
-      new Encoder(
-          DriveConstants.kRightEncoderPorts[0],
-          DriveConstants.kRightEncoderPorts[1],
-          DriveConstants.kRightEncoderReversed);
+  private final CANEncoder m_rightEncoder = rightLeader.getEncoder();
 
   // The gyro sensor
   private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
@@ -75,17 +65,16 @@ public class DriveSubsystem extends SubsystemBase {
 
   // These classes help us simulate our drivetrain
   public DifferentialDrivetrainSim m_drivetrainSimulator;
-  private EncoderSim m_leftEncoderSim;
-  private EncoderSim m_rightEncoderSim;
+  private CANEncoderSim m_leftEncoderSim;
+  private CANEncoderSim m_rightEncoderSim;
   // The Field2d class shows the field in the sim GUI
   private Field2d m_fieldSim;
   private ADXRS450_GyroSim m_gyroSim;
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
-    // Sets the distance per pulse for the encoders
-    m_leftEncoder.setDistancePerPulse(DriveConstants.kEncoderDistancePerPulse);
-    m_rightEncoder.setDistancePerPulse(DriveConstants.kEncoderDistancePerPulse);
+    leftFollower.follow(leftLeader);
+    rightFollower.follow(rightLeader);
 
     resetEncoders();
     m_odometry = new DifferentialDriveOdometry(Rotation2d.fromDegrees(getHeading()));
@@ -103,8 +92,8 @@ public class DriveSubsystem extends SubsystemBase {
               /*VecBuilder.fill(0, 0, 0.0001, 0.1, 0.1, 0.005, 0.005)*/);
 
       // The encoder and gyro angle sims let us set simulated sensor readings
-      m_leftEncoderSim = new EncoderSim(m_leftEncoder);
-      m_rightEncoderSim = new EncoderSim(m_rightEncoder);
+      m_leftEncoderSim = new CANEncoderSim(false, DriveConstants.kLeftMotor1Port);
+      m_rightEncoderSim = new CANEncoderSim(false, DriveConstants.kRightMotor1Port);
       m_gyroSim = new ADXRS450_GyroSim(m_gyro);
 
       // the Field2d class lets us visualize our robot in the simulation GUI.
@@ -118,8 +107,8 @@ public class DriveSubsystem extends SubsystemBase {
     // Update the odometry in the periodic block
     m_odometry.update(
         Rotation2d.fromDegrees(getHeading()),
-        m_leftEncoder.getDistance(),
-        m_rightEncoder.getDistance());
+        m_leftEncoder.getPosition(),
+        m_rightEncoder.getPosition());
     m_fieldSim.setRobotPose(getPose());
   }
 
@@ -130,14 +119,14 @@ public class DriveSubsystem extends SubsystemBase {
     // We negate the right side so that positive voltages make the right side
     // move forward.
     m_drivetrainSimulator.setInputs(
-        m_leftMotors.get() * RobotController.getBatteryVoltage(),
-        -m_rightMotors.get() * RobotController.getBatteryVoltage());
+        leftLeader.get() * RobotController.getBatteryVoltage(),
+        -rightLeader.get() * RobotController.getBatteryVoltage());
     m_drivetrainSimulator.update(0.020);
 
-    m_leftEncoderSim.setDistance(m_drivetrainSimulator.getLeftPositionMeters());
-    m_leftEncoderSim.setRate(m_drivetrainSimulator.getLeftVelocityMetersPerSecond());
-    m_rightEncoderSim.setDistance(m_drivetrainSimulator.getRightPositionMeters());
-    m_rightEncoderSim.setRate(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
+    m_leftEncoderSim.setPosition(m_drivetrainSimulator.getLeftPositionMeters());
+    m_leftEncoderSim.setVelocity(m_drivetrainSimulator.getLeftVelocityMetersPerSecond());
+    m_rightEncoderSim.setPosition(m_drivetrainSimulator.getRightPositionMeters());
+    m_rightEncoderSim.setVelocity(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
     m_gyroSim.setAngle(-m_drivetrainSimulator.getHeading().getDegrees());
   }
 
@@ -166,7 +155,7 @@ public class DriveSubsystem extends SubsystemBase {
    * @return The current wheel speeds.
    */
   public DifferentialDriveWheelSpeeds getWheelSpeeds() {
-    return new DifferentialDriveWheelSpeeds(m_leftEncoder.getRate(), m_rightEncoder.getRate());
+    return new DifferentialDriveWheelSpeeds(m_leftEncoder.getVelocity(), m_rightEncoder.getVelocity());
   }
 
   /**
@@ -202,15 +191,15 @@ public class DriveSubsystem extends SubsystemBase {
       leftVolts *= batteryVoltage / 12.0;
       rightVolts *= batteryVoltage / 12.0;
     }
-    m_leftMotors.setVoltage(leftVolts);
-    m_rightMotors.setVoltage(-rightVolts);
+    leftLeader.setVoltage(leftVolts);
+    rightLeader.setVoltage(-rightVolts);
     m_drive.feed();
   }
 
   /** Resets the drive encoders to currently read a position of 0. */
   public void resetEncoders() {
-    m_leftEncoder.reset();
-    m_rightEncoder.reset();
+    m_leftEncoder.setPosition(0);
+    m_rightEncoder.setPosition(0);
   }
 
   /**
@@ -219,7 +208,7 @@ public class DriveSubsystem extends SubsystemBase {
    * @return the average of the two encoder readings
    */
   public double getAverageEncoderDistance() {
-    return (m_leftEncoder.getDistance() + m_rightEncoder.getDistance()) / 2.0;
+    return (m_leftEncoder.getPosition() + m_rightEncoder.getPosition()) / 2.0;
   }
 
   /**
@@ -227,7 +216,7 @@ public class DriveSubsystem extends SubsystemBase {
    *
    * @return the left drive encoder
    */
-  public Encoder getLeftEncoder() {
+  public CANEncoder getLeftEncoder() {
     return m_leftEncoder;
   }
 
@@ -236,7 +225,7 @@ public class DriveSubsystem extends SubsystemBase {
    *
    * @return the right drive encoder
    */
-  public Encoder getRightEncoder() {
+  public CANEncoder getRightEncoder() {
     return m_rightEncoder;
   }
 

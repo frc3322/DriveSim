@@ -34,11 +34,7 @@ public final class Constants {
     public static final DifferentialDriveKinematics kDriveKinematics =
         new DifferentialDriveKinematics(kTrackwidthMeters);
 
-    public static final int kEncoderCPR = 1024;
     public static final double kWheelDiameterMeters = 6*0.0254; //0.15
-    public static final double kEncoderDistancePerPulse =
-        // Assumes the encoders are directly mounted on the wheel shafts
-        (kWheelDiameterMeters * Math.PI) / (double) kEncoderCPR;
 
     public static final boolean kGyroReversed = true;
 
@@ -66,7 +62,7 @@ public final class Constants {
             kaVoltSecondsSquaredPerRadian);
 
     // Example values only -- use what's on your physical robot!
-    public static final DCMotor kDriveGearbox = DCMotor.getCIM(2);
+    public static final DCMotor kDriveGearbox = DCMotor.getNEO(2);
     public static final double kDriveGearing = 2480.0/242.0; //8
 
     // Example value only - as above, this must be tuned for your drive!
