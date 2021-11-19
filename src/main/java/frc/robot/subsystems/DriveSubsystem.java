@@ -315,22 +315,22 @@ public class DriveSubsystem extends SubsystemBase {
   
   public Command getRamseteCommand(DriveSubsystem robotDrive, String traj, boolean reversed) {
     RamseteCommand ramseteCommand =
-    new RamseteCommand(
-        getTrajFromFieldWidget(traj, reversed),
-        robotDrive::getPose,
-        new RamseteController(
-            Constants.AutoConstants.kRamseteB, Constants.AutoConstants.kRamseteZeta),
-        new SimpleMotorFeedforward(
-            Constants.DriveConstants.ksVolts,
-            Constants.DriveConstants.kvVoltSecondsPerMeter,
-            Constants.DriveConstants.kaVoltSecondsSquaredPerMeter),
-        Constants.DriveConstants.kDriveKinematics,
-        robotDrive::getWheelSpeeds,
-        new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
-        new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
-        // RamseteCommand passes volts to the callback
-        robotDrive::tankDriveVolts,
-        robotDrive);
+      new RamseteCommand(
+          getTrajFromFieldWidget(traj, reversed),
+          robotDrive::getPose,
+          new RamseteController(
+              Constants.AutoConstants.kRamseteB, Constants.AutoConstants.kRamseteZeta),
+          new SimpleMotorFeedforward(
+              Constants.DriveConstants.ksVolts,
+              Constants.DriveConstants.kvVoltSecondsPerMeter,
+              Constants.DriveConstants.kaVoltSecondsSquaredPerMeter),
+          Constants.DriveConstants.kDriveKinematics,
+          robotDrive::getWheelSpeeds,
+          new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
+          new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
+          // RamseteCommand passes volts to the callback
+          robotDrive::tankDriveVolts,
+          robotDrive);
   
     // Reset odometry to starting pose of trajectory.
     robotDrive.resetOdometry(getTrajFromFieldWidget(traj, reversed).getInitialPose());
