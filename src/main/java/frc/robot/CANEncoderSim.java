@@ -1,3 +1,5 @@
+//This CANEncoder wrapper for use in robot sim has been borrowed from FRC 6738
+
 package frc.robot;
 
 import edu.wpi.first.hal.SimDouble;
