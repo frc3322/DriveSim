@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -30,6 +31,8 @@ public class Robot extends TimedRobot {
     m_robotContainer = new RobotContainer();
 
     m_robotContainer.getRobotDrive().putTrajToFieldWidget();
+
+    DriverStation.getInstance().silenceJoystickConnectionWarning(true);
 
     // Flush NetworkTables every loop. This ensures that robot pose and other values
     // are sent during every loop iteration.

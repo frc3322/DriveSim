@@ -40,6 +40,7 @@ import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConst
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpiutil.math.MathUtil;
 import edu.wpi.first.wpiutil.math.VecBuilder;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -185,6 +186,49 @@ public class DriveSubsystem extends SubsystemBase {
     m_drive.arcadeDrive(fwd, rot);
   }
 
+  public void arcadeDriveSim(double xSpeed, double zRotation) {
+    xSpeed = MathUtil.clamp(xSpeed, -1.0, 1.0);
+    zRotation = MathUtil.clamp(zRotation, -1.0, 1.0);
+
+    double leftSpeed;
+    double rightSpeed;
+
+    double maxInput = Math.copySign(Math.max(Math.abs(xSpeed), Math.abs(zRotation)), xSpeed);
+
+    if (xSpeed >= 0.0) {
+      // First quadrant, else second quadrant
+      if (zRotation >= 0.0) {
+        leftSpeed = maxInput;
+        rightSpeed = xSpeed - zRotation;
+      } else {
+        leftSpeed = xSpeed + zRotation;
+        rightSpeed = maxInput;
+      }
+    } else {
+      // Third quadrant, else fourth quadrant
+      if (zRotation >= 0.0) {
+        leftSpeed = xSpeed + zRotation;
+        rightSpeed = maxInput;
+      } else {
+        leftSpeed = maxInput;
+        rightSpeed = xSpeed - zRotation;
+      }
+    }
+
+    // Normalize the wheel speeds
+    double maxMagnitude = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
+    if (maxMagnitude > 1.0) {
+      leftSpeed /= maxMagnitude;
+      rightSpeed /= maxMagnitude;
+    }
+
+    double leftVolts = leftSpeed * RobotController.getBatteryVoltage();
+    double rightVolts = rightSpeed * RobotController.getBatteryVoltage();
+
+    tankDriveVolts(leftVolts, rightVolts);
+
+  }
+
   /**
    * Controls the left and right sides of the drive directly with voltages.
    *
@@ -192,11 +236,6 @@ public class DriveSubsystem extends SubsystemBase {
    * @param rightVolts the commanded right output
    */
   public void tankDriveVolts(double leftVolts, double rightVolts) {
-    var batteryVoltage = RobotController.getBatteryVoltage();
-    if (Math.max(Math.abs(leftVolts), Math.abs(rightVolts)) > batteryVoltage) {
-      leftVolts *= batteryVoltage / 12.0;
-      rightVolts *= batteryVoltage / 12.0;
-    }
     leftLeader.setVoltage(leftVolts);
     rightLeader.setVoltage(-rightVolts);
 
@@ -285,7 +324,7 @@ public class DriveSubsystem extends SubsystemBase {
     return config;
   }
 
-  public Trajectory getTraj() {
+  public Trajectory getExampleTraj() {
     Trajectory exampleTrajectory =
     TrajectoryGenerator.generateTrajectory(
         // Start at (1, 2) facing the +X direction
@@ -314,9 +353,17 @@ public class DriveSubsystem extends SubsystemBase {
   }
   
   public Command getRamseteCommand(DriveSubsystem robotDrive, String traj, boolean reversed) {
+    Trajectory trajectory;
+    try{
+      trajectory = getTrajFromFieldWidget(traj, reversed);
+    } catch(Exception NegativeArraySizeException){
+      System.out.println("No poses found in the trajectory \"" + traj + "\" in the field2d widget \"" + m_fieldSim.getName() + "\", defaulting to example trajectory.");
+      trajectory = getExampleTraj();
+    }
+
     RamseteCommand ramseteCommand =
       new RamseteCommand(
-          getTrajFromFieldWidget(traj, reversed),
+          trajectory,
           robotDrive::getPose,
           new RamseteController(
               Constants.AutoConstants.kRamseteB, Constants.AutoConstants.kRamseteZeta),
@@ -333,7 +380,7 @@ public class DriveSubsystem extends SubsystemBase {
           robotDrive);
   
     // Reset odometry to starting pose of trajectory.
-    robotDrive.resetOdometry(getTrajFromFieldWidget(traj, reversed).getInitialPose());
+    robotDrive.resetOdometry(trajectory.getInitialPose());
     
     // Run path following command, then stop at the end.
     return ramseteCommand.andThen(() -> robotDrive.tankDriveVolts(0, 0));

@@ -31,18 +31,30 @@ public class RobotContainer {
     // Configure the button bindings
     configureButtonBindings();
 
-    // Configure default commands
-    // Set the default drive command to split-stick arcade drive
-    m_robotDrive.setDefaultCommand(
+    if(Robot.isSimulation()){
+      m_robotDrive.setDefaultCommand(
         // A split-stick arcade command, with forward/backward controlled by the left
         // hand, and turning controlled by the right.
         new RunCommand(
             () ->
-                m_robotDrive.arcadeDrive(
-                    -m_driverController.getY(GenericHID.Hand.kRight),
-                    m_driverController.getX(GenericHID.Hand.kLeft)),
+                m_robotDrive.arcadeDriveSim(
+                    m_driverController.getY(GenericHID.Hand.kRight), //Axis[0]
+                    -m_driverController.getX(GenericHID.Hand.kLeft)), //Axis[5]
             m_robotDrive));
+    } else {
+      m_robotDrive.setDefaultCommand(
+        new RunCommand(
+            () ->
+                m_robotDrive.arcadeDrive(
+                    -m_driverController.getY(GenericHID.Hand.kRight), //Axis[0]
+                    m_driverController.getX(GenericHID.Hand.kLeft)), //Axis[5]
+            m_robotDrive));
+    }
+
   }
+    // Configure default commands
+    // Set the default drive command to split-stick arcade drive
+    
 
   /**
    * Use this method to define your button->command mappings. Buttons can be created by
