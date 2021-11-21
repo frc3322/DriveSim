@@ -6,31 +6,26 @@ package frc.robot.subsystems;
 
 import java.util.List;
 
+import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.PWMVictorSPX;
+import edu.wpi.first.hal.SimDouble;
+import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
+import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.controller.RamseteController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import frc.robot.Constants;
-import frc.robot.Constants.DriveConstants;
-import frc.robot.CANEncoderSim;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
-import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
-import edu.wpi.first.wpilibj.simulation.EncoderSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
@@ -42,6 +37,10 @@ import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.MathUtil;
 import edu.wpi.first.wpiutil.math.VecBuilder;
+
+import frc.robot.Constants;
+import frc.robot.Constants.DriveConstants;
+import frc.robot.CANEncoderSim;
 
 public class DriveSubsystem extends SubsystemBase {
   private final CANSparkMax leftLeader = new CANSparkMax(DriveConstants.kLeftMotor1Port, MotorType.kBrushless);
@@ -59,7 +58,7 @@ public class DriveSubsystem extends SubsystemBase {
   private final CANEncoder m_rightEncoder = rightLeader.getEncoder();
 
   // The gyro sensor
-  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+  private final AHRS m_gyro;
 
   // Odometry class for tracking robot pose
   private final DifferentialDriveOdometry m_odometry;
@@ -70,7 +69,7 @@ public class DriveSubsystem extends SubsystemBase {
   private CANEncoderSim m_rightEncoderSim;
   // The Field2d class shows the field in the sim GUI
   private Field2d m_fieldSim;
-  private ADXRS450_GyroSim m_gyroSim;
+  private SimDouble m_gyroSim;
 
   private double rightVoltage;
   private double leftVoltage;
@@ -84,7 +83,9 @@ public class DriveSubsystem extends SubsystemBase {
     rightVoltage = 0;
 
     resetEncoders();
-    m_odometry = new DifferentialDriveOdometry(Rotation2d.fromDegrees(getHeading()));
+
+    m_gyro = new AHRS(SPI.Port.kMXP);
+    m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
 
     if (RobotBase.isSimulation()) { // If our robot is simulated
       // This class simulates our drivetrain's motion around the field.
@@ -101,7 +102,10 @@ public class DriveSubsystem extends SubsystemBase {
       // The encoder and gyro angle sims let us set simulated sensor readings
       m_leftEncoderSim = new CANEncoderSim(false, DriveConstants.kLeftMotor1Port);
       m_rightEncoderSim = new CANEncoderSim(false, DriveConstants.kRightMotor1Port);
-      m_gyroSim = new ADXRS450_GyroSim(m_gyro);
+      m_gyroSim = 
+        new SimDouble(
+          SimDeviceDataJNI.getSimValueHandle(
+              SimDeviceDataJNI.getSimDeviceHandle("navX-Sensor[0]"), "Yaw"));
 
       // the Field2d class lets us visualize our robot in the simulation GUI.
       m_fieldSim = new Field2d();
@@ -113,7 +117,7 @@ public class DriveSubsystem extends SubsystemBase {
   public void periodic() {
     // Update the odometry in the periodic block
     m_odometry.update(
-        Rotation2d.fromDegrees(getHeading()),
+        m_gyro.getRotation2d(),
         m_leftEncoder.getPosition(),
         m_rightEncoder.getPosition());
     m_fieldSim.setRobotPose(getPose());
@@ -134,7 +138,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_leftEncoderSim.setVelocity(m_drivetrainSimulator.getLeftVelocityMetersPerSecond());
     m_rightEncoderSim.setPosition(m_drivetrainSimulator.getRightPositionMeters());
     m_rightEncoderSim.setVelocity(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
-    m_gyroSim.setAngle(-m_drivetrainSimulator.getHeading().getDegrees());
+    m_gyroSim.set(-m_drivetrainSimulator.getHeading().getDegrees());
   }
 
   /**
@@ -173,7 +177,8 @@ public class DriveSubsystem extends SubsystemBase {
   public void resetOdometry(Pose2d pose) {
     resetEncoders();
     m_drivetrainSimulator.setPose(pose);
-    m_odometry.resetPosition(pose, Rotation2d.fromDegrees(getHeading()));
+    m_gyroSim.set(-pose.getRotation().getDegrees());
+    m_odometry.resetPosition(pose, m_gyro.getRotation2d());
   }
 
   /**
@@ -291,15 +296,6 @@ public class DriveSubsystem extends SubsystemBase {
     m_gyro.reset();
   }
 
-  /**
-   * Returns the heading of the robot.
-   *
-   * @return the robot's heading in degrees, from -180 to 180
-   */
-  public double getHeading() {
-    return Math.IEEEremainder(m_gyro.getAngle(), 360) * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
-  }
-
   public TrajectoryConfig getTrajConfig(boolean reversed) {
     var autoVoltageConstraint =
     new DifferentialDriveVoltageConstraint(
@@ -349,18 +345,18 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   public Trajectory getTrajFromFieldWidget(String traj, boolean reversed){
-    return TrajectoryGenerator.generateTrajectory(m_fieldSim.getObject(traj).getPoses(), getTrajConfig(reversed));
-  }
-  
-  public Command getRamseteCommand(DriveSubsystem robotDrive, String traj, boolean reversed) {
     Trajectory trajectory;
     try{
-      trajectory = getTrajFromFieldWidget(traj, reversed);
+      trajectory = TrajectoryGenerator.generateTrajectory(m_fieldSim.getObject(traj).getPoses(), getTrajConfig(reversed));;
     } catch(Exception NegativeArraySizeException){
       System.out.println("No poses found in the trajectory \"" + traj + "\" in the field2d widget \"" + m_fieldSim.getName() + "\", defaulting to example trajectory.");
       trajectory = getExampleTraj();
     }
 
+    return trajectory;
+  }
+  
+  public Command getRamseteCommand(DriveSubsystem robotDrive, Trajectory trajectory) {
     RamseteCommand ramseteCommand =
       new RamseteCommand(
           trajectory,

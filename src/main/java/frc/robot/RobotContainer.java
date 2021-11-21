@@ -84,6 +84,6 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    return m_robotDrive.getRamseteCommand(m_robotDrive, "traj1", false);
+    return m_robotDrive.getRamseteCommand(m_robotDrive, m_robotDrive.getTrajFromFieldWidget("traj1", false));
   }
 }
