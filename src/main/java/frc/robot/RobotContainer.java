@@ -5,32 +5,50 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.Sendable;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.XboxController.Button;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.ProfiledPIDCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.Commands.ProfiledPIDAngleCommand;
 import frc.robot.subsystems.DriveSubsystem;
 
 /**
- * This class is where the bulk of the robot should be declared. Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the Robot periodic
- * methods (other than the scheduler calls). Instead, the structure of the robot (including
- * subsystems, commands, and button mappings) should be declared here.
+ * This class is where the bulk of the robot should be declared. Since
+ * Command-based is a "declarative" paradigm, very little robot logic should
+ * actually be handled in the Robot periodic methods (other than the scheduler
+ * calls). Instead, the structure of the robot (including subsystems, commands,
+ * and button mappings) should be declared here.
  */
 public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
 
-  // The driver's controller
-  XboxController m_driverController =
-      new XboxController(Constants.OIConstants.kDriverControllerPort);
+  // The robot's commands
+  private final ProfiledPIDAngleCommand m_profiledPIDAngleCommand = new ProfiledPIDAngleCommand(m_robotDrive, 90);
 
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
+  // The driver's controller
+  XboxController m_driverController = new XboxController(Constants.OIConstants.kDriverControllerPort);
+
+  /**
+   * The container for the robot. Contains subsystems, OI devices, and commands.
+   */
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
 
+    // Configure the drive command
+    setDefaultDriveCommand();
+
+    SmartDashboard.putData("Turn to Angle Command 1", m_profiledPIDAngleCommand);
+
+  }
+    // Configure default commands
+    // Set the default drive command to split-stick arcade drive
+  private void setDefaultDriveCommand() {
     if(Robot.isSimulation()){
       m_robotDrive.setDefaultCommand(
         // A split-stick arcade command, with forward/backward controlled by the left
@@ -50,11 +68,7 @@ public class RobotContainer {
                     m_driverController.getX(GenericHID.Hand.kLeft)), //Axis[5]
             m_robotDrive));
     }
-
   }
-    // Configure default commands
-    // Set the default drive command to split-stick arcade drive
-    
 
   /**
    * Use this method to define your button->command mappings. Buttons can be created by

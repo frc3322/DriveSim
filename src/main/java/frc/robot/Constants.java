@@ -66,7 +66,10 @@ public final class Constants {
     public static final double kDriveGearing = 2480.0/242.0; //8
 
     // Example value only - as above, this must be tuned for your drive!
-    public static final double kPDriveVel = 10.0; //8.5
+    public static final double kPVel = 10.0; //8.5
+
+    public static double kPAngle = 0.0004;
+    public static double kDAngle = 0.0000;
   }
 
   public static final class OIConstants {

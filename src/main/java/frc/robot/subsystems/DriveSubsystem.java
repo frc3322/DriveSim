@@ -5,6 +5,8 @@
 package frc.robot.subsystems;
 
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.DoubleSupplier;
 
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
@@ -17,6 +19,7 @@ import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.controller.PIDController;
+import edu.wpi.first.wpilibj.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.controller.RamseteController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -31,8 +34,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.ProfiledPIDCommand;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpiutil.math.MathUtil;
@@ -74,6 +79,9 @@ public class DriveSubsystem extends SubsystemBase {
   private double rightVoltage;
   private double leftVoltage;
 
+  private double lastYaw;
+  private double lastAngVel;
+  private double angVel;
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     leftFollower.follow(leftLeader);
@@ -86,6 +94,9 @@ public class DriveSubsystem extends SubsystemBase {
 
     m_gyro = new AHRS(SPI.Port.kMXP);
     m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
+
+    SmartDashboard.putNumber("kPAngle", Constants.DriveConstants.kPAngle);
+    SmartDashboard.putNumber("kDAngle", Constants.DriveConstants.kDAngle);
 
     if (RobotBase.isSimulation()) { // If our robot is simulated
       // This class simulates our drivetrain's motion around the field.
@@ -121,6 +132,9 @@ public class DriveSubsystem extends SubsystemBase {
         m_leftEncoder.getPosition(),
         m_rightEncoder.getPosition());
     m_fieldSim.setRobotPose(getPose());
+
+    SmartDashboard.putNumber("Angular Velocity", getAngularVelocity());
+    SmartDashboard.putNumber("Angular Acceleration", getAngularAcceleration());
   }
 
   @Override
@@ -160,6 +174,23 @@ public class DriveSubsystem extends SubsystemBase {
     return m_odometry.getPoseMeters();
   }
 
+  public double getHeading() {
+    return -m_gyro.getYaw();
+  }
+
+  public double getAngularVelocity() {
+    double angularVel = (getHeading() - lastYaw) / 0.02;
+    lastYaw = getHeading();
+    angVel = angularVel;
+    return angularVel;
+  }
+
+  public double getAngularAcceleration() {
+    double angularAccel = (angVel - lastAngVel) / 0.02;
+    lastAngVel = angVel;
+    return angularAccel;
+  }
+
   /**
    * Returns the current wheel speeds of the robot.
    *
@@ -177,7 +208,6 @@ public class DriveSubsystem extends SubsystemBase {
   public void resetOdometry(Pose2d pose) {
     resetEncoders();
     m_drivetrainSimulator.setPose(pose);
-    m_gyroSim.set(-pose.getRotation().getDegrees());
     m_odometry.resetPosition(pose, m_gyro.getRotation2d());
   }
 
@@ -369,8 +399,8 @@ public class DriveSubsystem extends SubsystemBase {
               Constants.DriveConstants.kaVoltSecondsSquaredPerMeter),
           Constants.DriveConstants.kDriveKinematics,
           robotDrive::getWheelSpeeds,
-          new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
-          new PIDController(Constants.DriveConstants.kPDriveVel, 0, 0),
+          new PIDController(Constants.DriveConstants.kPVel, 0, 0),
+          new PIDController(Constants.DriveConstants.kPVel, 0, 0),
           // RamseteCommand passes volts to the callback
           robotDrive::tankDriveVolts,
           robotDrive);
@@ -380,7 +410,7 @@ public class DriveSubsystem extends SubsystemBase {
     
     // Run path following command, then stop at the end.
     return ramseteCommand.andThen(() -> robotDrive.tankDriveVolts(0, 0));
-  }  
+  }
 
 }
 
