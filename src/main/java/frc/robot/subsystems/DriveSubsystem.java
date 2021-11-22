@@ -135,6 +135,8 @@ public class DriveSubsystem extends SubsystemBase {
         m_rightEncoder.getPosition());
     m_fieldSim.setRobotPose(getPose());
 
+    SmartDashboard.putNumber("Robot Heading", getHeading());
+
     SmartDashboard.putNumber("Angular Velocity", getAngularVelocity());
     SmartDashboard.putNumber("Angular Acceleration", getAngularAcceleration());
   }

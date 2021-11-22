@@ -68,8 +68,8 @@ public final class Constants {
     // Example value only - as above, this must be tuned for your drive!
     public static final double kPVel = 10.0; //8.5
 
-    public static double kPAngle = 0.0004;
-    public static double kDAngle = 0.0000;
+    public static double kPAngle = 5;
+    public static double kDAngle = 0;
   }
 
   public static final class OIConstants {

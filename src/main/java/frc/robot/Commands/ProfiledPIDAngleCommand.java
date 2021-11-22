@@ -18,7 +18,7 @@ import frc.robot.Constants.DriveConstants;
 import frc.robot.subsystems.DriveSubsystem;
 
 public class ProfiledPIDAngleCommand extends CommandBase {
-  TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(500, 2000);
+  TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(500, 1000);
   
   ProfiledPIDController m_controller = new ProfiledPIDController(
     Constants.DriveConstants.kPAngle, 
@@ -27,10 +27,7 @@ public class ProfiledPIDAngleCommand extends CommandBase {
     m_constraints
   );
 
-  double kS = 0.1;
-  double kV = 0;
-
-  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(kS, kV);
+  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0.161, 2);
 
   DriveSubsystem robotDrive;
   double angleGoal;
@@ -42,20 +39,18 @@ public class ProfiledPIDAngleCommand extends CommandBase {
     this.angleGoal = angleGoal;
     goal = new TrapezoidProfile.State(angleGoal, 0);
     addRequirements(robotDrive);
-
-    SmartDashboard.putNumber("kS", Constants.DriveConstants.ksVolts);
-    SmartDashboard.putNumber("kV", Constants.DriveConstants.kvVoltSecondsPerMeter);
   }
 
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    kS = SmartDashboard.getNumber("kS", kS);
-    kV = SmartDashboard.getNumber("kV", kV);
     m_controller.setP(SmartDashboard.getNumber("kPAngle", Constants.DriveConstants.kPAngle));
     m_controller.setD(SmartDashboard.getNumber("kDAngle", Constants.DriveConstants.kDAngle));
-    m_controller.enableContinuousInput(-180, 180);
-    m_controller.setTolerance(2);
+    if(!RobotBase.isSimulation()){
+      m_controller.enableContinuousInput(-180, 180);
+    }
+
+    m_controller.setTolerance(1);
   
   }
 
@@ -77,7 +72,9 @@ public class ProfiledPIDAngleCommand extends CommandBase {
 
     SmartDashboard.putNumber("AngleCommandTest/heading", robotDrive.getHeading());
     SmartDashboard.putNumber("AngleCommandTest/goal", angleGoal);
-
+    SmartDashboard.putNumber("AngleCommandTest/leftTargetSpeed", targetWheelSpeeds.leftMetersPerSecond);
+    SmartDashboard.putNumber("AngleCommandTest/rightTargetSpeed", targetWheelSpeeds.rightMetersPerSecond);
+    SmartDashboard.putNumber("AngleCommandTest/angularVelSetpoint", m_controller.getSetpoint().velocity);
     SmartDashboard.putNumber("AngleCommandTest/leftPID", PIDLeft);
     SmartDashboard.putNumber("AngleCommandTest/rightPID", PIDRight);
     SmartDashboard.putNumber("AngleCommandTest/ffLeft", ffLeft);
@@ -91,7 +88,7 @@ public class ProfiledPIDAngleCommand extends CommandBase {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_controller.reset(robotDrive.getHeading(), robotDrive.getAngularVelocity());
+    //m_controller.reset(robotDrive.getHeading(), robotDrive.getAngularVelocity());
   }
 
   // Returns true when the command should end.
