@@ -13,7 +13,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ProfiledPIDCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import frc.robot.Commands.ProfiledPIDAngleCommand;
+import frc.robot.commands.ProfiledPIDAngleCommand;
 import frc.robot.subsystems.DriveSubsystem;
 
 /**

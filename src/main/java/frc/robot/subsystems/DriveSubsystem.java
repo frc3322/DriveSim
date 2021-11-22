@@ -11,6 +11,7 @@ import java.util.function.DoubleSupplier;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.hal.SimDouble;
@@ -89,6 +90,11 @@ public class DriveSubsystem extends SubsystemBase {
     leftFollower.follow(leftLeader);
     rightFollower.follow(rightLeader);
 
+    leftLeader.setIdleMode(IdleMode.kBrake);
+    leftFollower.setIdleMode(IdleMode.kBrake);
+    rightLeader.setIdleMode(IdleMode.kBrake);
+    rightFollower.setIdleMode(IdleMode.kBrake);
+
     leftVoltage = 0;
     rightVoltage = 0;
 
@@ -156,7 +162,14 @@ public class DriveSubsystem extends SubsystemBase {
     m_leftEncoderSim.setVelocity(m_drivetrainSimulator.getLeftVelocityMetersPerSecond());
     m_rightEncoderSim.setPosition(m_drivetrainSimulator.getRightPositionMeters());
     m_rightEncoderSim.setVelocity(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
-    m_gyroSim.set(-m_drivetrainSimulator.getHeading().getDegrees());
+
+    double yaw = -m_drivetrainSimulator.getHeading().getDegrees();
+    if(yaw > 180) {
+      yaw -= 360;
+    } else if (yaw < -180){
+      yaw += 360;
+    }
+    m_gyroSim.set(yaw);
   }
 
   /**

@@ -2,9 +2,8 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.Commands;
+package frc.robot.commands;
 
-import edu.wpi.first.wpilibj.PIDOutput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
@@ -27,7 +26,7 @@ public class ProfiledPIDAngleCommand extends CommandBase {
     m_constraints
   );
 
-  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0.161, 2);
+  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(DriveConstants.ksVolts, DriveConstants.kvVoltSecondsPerMeter);
 
   DriveSubsystem robotDrive;
   double angleGoal;
@@ -57,20 +56,22 @@ public class ProfiledPIDAngleCommand extends CommandBase {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
+    double heading = robotDrive.getHeading();
+
     DifferentialDriveWheelSpeeds targetWheelSpeeds = 
       Constants.DriveConstants.kDriveKinematics.toWheelSpeeds(
         new ChassisSpeeds(0, 0, Math.toRadians(m_controller.getSetpoint().velocity)));
 
     DifferentialDriveWheelSpeeds PIDWheelSpeeds =
       Constants.DriveConstants.kDriveKinematics.toWheelSpeeds(
-        new ChassisSpeeds(0, 0, Math.toRadians(m_controller.calculate(robotDrive.getHeading(), goal))));
+        new ChassisSpeeds(0, 0, Math.toRadians(m_controller.calculate(heading, goal))));
 
     double ffLeft = feedforward.calculate(targetWheelSpeeds.leftMetersPerSecond);
     double ffRight = feedforward.calculate(targetWheelSpeeds.rightMetersPerSecond);
     double PIDLeft = PIDWheelSpeeds.leftMetersPerSecond;
     double PIDRight = PIDWheelSpeeds.rightMetersPerSecond;
 
-    SmartDashboard.putNumber("AngleCommandTest/heading", robotDrive.getHeading());
+    SmartDashboard.putNumber("AngleCommandTest/heading", heading);
     SmartDashboard.putNumber("AngleCommandTest/goal", angleGoal);
     SmartDashboard.putNumber("AngleCommandTest/leftTargetSpeed", targetWheelSpeeds.leftMetersPerSecond);
     SmartDashboard.putNumber("AngleCommandTest/rightTargetSpeed", targetWheelSpeeds.rightMetersPerSecond);
