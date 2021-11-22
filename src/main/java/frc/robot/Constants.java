@@ -63,13 +63,17 @@ public final class Constants {
 
     // Example values only -- use what's on your physical robot!
     public static final DCMotor kDriveGearbox = DCMotor.getNEO(2);
-    public static final double kDriveGearing = 2480.0/242.0; //8
+    public static final double kDriveGearing = 242.0/2480.0; //8
 
     // Example value only - as above, this must be tuned for your drive!
     public static final double kPVel = 10.0; //8.5
 
-    public static double kPAngle = 2;
-    public static double kDAngle = 0;
+    public static double kPAngle = 1;
+    public static double kDAngle = 0.35;
+
+    public static final double ksAngle = 0.161;
+    public static final double kvAngle = 25;
+    public static final double kaAngle = 3;
   }
 
   public static final class OIConstants {

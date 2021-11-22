@@ -106,6 +106,10 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("kPAngle", Constants.DriveConstants.kPAngle);
     SmartDashboard.putNumber("kDAngle", Constants.DriveConstants.kDAngle);
 
+    SmartDashboard.putNumber("kSAngle", DriveConstants.ksAngle);
+    SmartDashboard.putNumber("kVAngle", DriveConstants.kvAngle);
+    SmartDashboard.putNumber("kAAngle", DriveConstants.kaAngle);
+
     if (RobotBase.isSimulation()) { // If our robot is simulated
       // This class simulates our drivetrain's motion around the field.
       m_drivetrainSimulator =
@@ -163,13 +167,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_rightEncoderSim.setPosition(m_drivetrainSimulator.getRightPositionMeters());
     m_rightEncoderSim.setVelocity(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
 
-    double yaw = -m_drivetrainSimulator.getHeading().getDegrees();
-    if(yaw > 180) {
-      yaw -= 360;
-    } else if (yaw < -180){
-      yaw += 360;
-    }
-    m_gyroSim.set(yaw);
+    m_gyroSim.set(-m_drivetrainSimulator.getHeading().getDegrees());
   }
 
   /**
