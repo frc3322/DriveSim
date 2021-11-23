@@ -17,7 +17,7 @@ import frc.robot.Constants.DriveConstants;
 import frc.robot.subsystems.DriveSubsystem;
 
 public class ProfiledPIDAngleCommand extends CommandBase {
-  TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(500, 1000);
+  TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(Math.PI, 2*Math.PI);
   
   ProfiledPIDController m_controller = new ProfiledPIDController(
     Constants.DriveConstants.kPAngle, 
@@ -26,98 +26,66 @@ public class ProfiledPIDAngleCommand extends CommandBase {
     m_constraints
   );
 
-  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(DriveConstants.ksAngle, DriveConstants.kvAngle, DriveConstants.kaAngle);
+  SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(
+    0,
+    DriveConstants.kvVoltSecondsPerRadian, 
+    DriveConstants.kaVoltSecondsSquaredPerRadian);
 
   DriveSubsystem robotDrive;
-  double angleGoal;
+  double angleGoalRadians;
   TrapezoidProfile.State goal;
 
-  double lastTargetLeftWheelSpeed;
-  double lastTargetRightWheelSpeed;
   double lastTargetAngularSpeed;
 
   /** Creates a new ProfiledPIDAngleCommand. */
   public ProfiledPIDAngleCommand(DriveSubsystem robotDrive, double angleGoal) {
     this.robotDrive = robotDrive;
-    this.angleGoal = angleGoal;
-    goal = new TrapezoidProfile.State(angleGoal, 0);
+    angleGoalRadians = Math.toRadians(angleGoal);
+    goal = new TrapezoidProfile.State(angleGoalRadians, 0);
     addRequirements(robotDrive);
   }
 
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    feedforward = new SimpleMotorFeedforward(
-      SmartDashboard.getNumber("kSAngle", DriveConstants.ksAngle), 
-      SmartDashboard.getNumber("kVAngle", DriveConstants.kvAngle), 
-      SmartDashboard.getNumber("kAAngle", DriveConstants.kaAngle));
-
     m_controller.setP(SmartDashboard.getNumber("kPAngle", Constants.DriveConstants.kPAngle));
     m_controller.setD(SmartDashboard.getNumber("kDAngle", Constants.DriveConstants.kDAngle));
-    if(!RobotBase.isSimulation()){
-      m_controller.enableContinuousInput(-180, 180);
-    }
 
-    m_controller.setTolerance(1);
-
-    m_controller.reset(new TrapezoidProfile.State(robotDrive.getHeading(), robotDrive.getAngularVelocity()));
+    m_controller.reset(new TrapezoidProfile.State(Math.toRadians(robotDrive.getHeading()), Math.toRadians(robotDrive.getAngularVelocity())));
+    m_controller.setGoal(goal);
   
   }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    double heading = robotDrive.getHeading();
+    double headingRadians = Math.toRadians(robotDrive.getHeading());
+    double controllerOutput = m_controller.calculate(headingRadians);
 
-    DifferentialDriveWheelSpeeds targetShaftSpeeds = 
-      Constants.DriveConstants.kDriveKinematics.toWheelSpeeds(
-        new ChassisSpeeds(0, 0, Math.toRadians(m_controller.getSetpoint().velocity)));
-
-    double targetLeftWheelSpeed = targetShaftSpeeds.leftMetersPerSecond * DriveConstants.kDriveGearing * Math.PI * DriveConstants.kWheelDiameterMeters;
-    double targetRightWheelSpeed = targetShaftSpeeds.rightMetersPerSecond * DriveConstants.kDriveGearing * Math.PI * DriveConstants.kWheelDiameterMeters;
-    double targetLeftWheelAccel = (targetLeftWheelSpeed - lastTargetLeftWheelSpeed) / 0.02;
-    double targetRightWheelAccel = (targetRightWheelSpeed - lastTargetRightWheelSpeed) / 0.02;
-    lastTargetLeftWheelSpeed = targetLeftWheelSpeed;
-    lastTargetRightWheelSpeed = targetRightWheelSpeed;
+    DifferentialDriveWheelSpeeds PID = DriveConstants.kDriveKinematics.toWheelSpeeds(new ChassisSpeeds(0, 0, controllerOutput));
     
     double targetAngularAccel = (m_controller.getSetpoint().velocity - lastTargetAngularSpeed) / 0.02;
     lastTargetAngularSpeed = m_controller.getSetpoint().velocity;
 
-    DifferentialDriveWheelSpeeds PIDWheelSpeeds =
-      Constants.DriveConstants.kDriveKinematics.toWheelSpeeds(
-        new ChassisSpeeds(0, 0, Math.toRadians(m_controller.calculate(heading, goal))));
+    double ff = feedforward.calculate(m_controller.getSetpoint().velocity, targetAngularAccel) / (2 / DriveConstants.kTrackwidthMeters);
 
-    double ffLeft = feedforward.calculate(targetLeftWheelSpeed, targetLeftWheelAccel);
-    double ffRight = feedforward.calculate(targetRightWheelSpeed, targetRightWheelAccel);
-    double PIDLeft = PIDWheelSpeeds.leftMetersPerSecond;
-    double PIDRight = PIDWheelSpeeds.rightMetersPerSecond;
-
-    SmartDashboard.putNumber("AngleCommandTest/heading", heading);
-    SmartDashboard.putNumber("AngleCommandTest/goal", angleGoal);
-    SmartDashboard.putNumber("AngleCommandTest/leftTargetSpeed", targetLeftWheelSpeed);
-    SmartDashboard.putNumber("AngleCommandTest/rightTargetSpeed", targetRightWheelSpeed);
+    SmartDashboard.putNumber("AngleCommandTest/goal", angleGoalRadians);
+    SmartDashboard.putNumber("AngleCommandTest/output", controllerOutput);
     SmartDashboard.putNumber("AngleCommandTest/angularVelSetpoint", m_controller.getSetpoint().velocity);
     SmartDashboard.putNumber("AngleCommandTest/angularPosSetpoint", m_controller.getSetpoint().position);
     SmartDashboard.putNumber("AngleCommandTest/angularAccelSetpoint", targetAngularAccel);
-    SmartDashboard.putNumber("AngleCommandTest/leftPID", PIDLeft);
-    SmartDashboard.putNumber("AngleCommandTest/rightPID", PIDRight);
-    SmartDashboard.putNumber("AngleCommandTest/ffLeft", ffLeft);
-    SmartDashboard.putNumber("AngleCommandTest/ffRight", ffRight);
-    SmartDashboard.putNumber("AngleCommandTest/leftOutput", ffLeft+PIDLeft);
-    SmartDashboard.putNumber("AngleCommandTest/rightOutput", ffRight + PIDRight);
+    SmartDashboard.putNumber("AngleCommandTest/ff", ff);
 
-    robotDrive.tankDriveVolts(ffLeft+PIDLeft, ffRight+PIDRight);
+    robotDrive.tankDriveVolts(-ff + PID.leftMetersPerSecond, ff + PID.rightMetersPerSecond);
   }
 
   // Called once the command ends or is interrupted.
   @Override
-  public void end(boolean interrupted) {
-    m_controller.reset(new TrapezoidProfile.State(robotDrive.getHeading(), robotDrive.getAngularVelocity()));
-  }
+  public void end(boolean interrupted) {}
 
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return m_controller.atGoal();
+    return false;//m_controller.atGoal();
   }
 }

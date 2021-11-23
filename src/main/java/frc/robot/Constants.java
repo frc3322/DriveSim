@@ -25,16 +25,14 @@ public final class Constants {
     public static final int kRightMotor1Port = 2;
     public static final int kRightMotor2Port = 3;
 
-    public static final int[] kLeftEncoderPorts = new int[] {0, 1};
-    public static final int[] kRightEncoderPorts = new int[] {2, 3};
     public static final boolean kLeftEncoderReversed = false;
     public static final boolean kRightEncoderReversed = true;
 
-    public static final double kTrackwidthMeters = 0.66; //0.69
+    public static final double kTrackwidthMeters = 0.69; //0.66
     public static final DifferentialDriveKinematics kDriveKinematics =
         new DifferentialDriveKinematics(kTrackwidthMeters);
 
-    public static final double kWheelDiameterMeters = 6*0.0254; //0.15
+    public static final double kWheelDiameterMeters = 0.15; //6*0.0254
 
     public static final boolean kGyroReversed = true;
 
@@ -43,9 +41,9 @@ public final class Constants {
     // for *your* robot's drive.
     // The Robot Characterization Toolsuite provides a convenient tool for obtaining these
     // values for your robot.
-    public static final double ksVolts = 0.161; //0.22
-    public static final double kvVoltSecondsPerMeter = 3.05; //1.98
-    public static final double kaVoltSecondsSquaredPerMeter = 0.475; //0.2
+    public static final double ksVolts = 0.22; //0.161
+    public static final double kvVoltSecondsPerMeter = 1.98; //3.05
+    public static final double kaVoltSecondsSquaredPerMeter = 0.2; //0.475
 
     // These are example values only - DO NOT USE THESE FOR YOUR OWN ROBOT!
     // These characterization values MUST be determined either experimentally or theoretically
@@ -62,18 +60,14 @@ public final class Constants {
             kaVoltSecondsSquaredPerRadian);
 
     // Example values only -- use what's on your physical robot!
-    public static final DCMotor kDriveGearbox = DCMotor.getNEO(2);
-    public static final double kDriveGearing = 242.0/2480.0; //8
+    public static final DCMotor kDriveGearbox = DCMotor.getCIM(2); //.getNEO(2)
+    public static final double kDriveGearing = 8; //242.0/2480.0
 
     // Example value only - as above, this must be tuned for your drive!
-    public static final double kPVel = 10.0; //8.5
+    public static final double kPVel = 8.5; //10.0
 
-    public static double kPAngle = 1;
-    public static double kDAngle = 0.35;
-
-    public static final double ksAngle = 0.161;
-    public static final double kvAngle = 25;
-    public static final double kaAngle = 3;
+    public static double kPAngle = 0;
+    public static double kDAngle = 0;
   }
 
   public static final class OIConstants {

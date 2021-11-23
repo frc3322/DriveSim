@@ -85,6 +85,11 @@ public class DriveSubsystem extends SubsystemBase {
   private double lastYaw;
   private double lastAngVel;
   private double angVel;
+
+  private double lastYawRad;
+  private double lastAngVelRad;
+  private double angVelRad;
+
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     leftFollower.follow(leftLeader);
@@ -106,9 +111,9 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("kPAngle", Constants.DriveConstants.kPAngle);
     SmartDashboard.putNumber("kDAngle", Constants.DriveConstants.kDAngle);
 
-    SmartDashboard.putNumber("kSAngle", DriveConstants.ksAngle);
-    SmartDashboard.putNumber("kVAngle", DriveConstants.kvAngle);
-    SmartDashboard.putNumber("kAAngle", DriveConstants.kaAngle);
+    SmartDashboard.putNumber("kSAngle", DriveConstants.ksVolts);
+    SmartDashboard.putNumber("kVAngle", DriveConstants.kvVoltSecondsPerMeter);
+    SmartDashboard.putNumber("kAAngle", DriveConstants.kaVoltSecondsSquaredPerMeter);
 
     if (RobotBase.isSimulation()) { // If our robot is simulated
       // This class simulates our drivetrain's motion around the field.
@@ -146,6 +151,10 @@ public class DriveSubsystem extends SubsystemBase {
     m_fieldSim.setRobotPose(getPose());
 
     SmartDashboard.putNumber("Robot Heading", getHeading());
+    SmartDashboard.putNumber("Robot Heading Radians", Math.toRadians(getHeading()));
+
+    SmartDashboard.putNumber("Angular Velocity Radians", getAngularVelocityRad());
+    SmartDashboard.putNumber("Angular Acceleration Radians", getAngularAccelerationRad());
 
     SmartDashboard.putNumber("Angular Velocity", getAngularVelocity());
     SmartDashboard.putNumber("Angular Acceleration", getAngularAcceleration());
@@ -204,6 +213,19 @@ public class DriveSubsystem extends SubsystemBase {
     double angularAccel = (angVel - lastAngVel) / 0.02;
     lastAngVel = angVel;
     return angularAccel;
+  }
+
+  public double getAngularVelocityRad() {
+    double angularVelRad = (Math.toRadians(getHeading()) - lastYawRad) / 0.02;
+    lastYawRad = Math.toRadians(getHeading());
+    angVelRad = angularVelRad;
+    return angularVelRad;
+  }
+
+  public double getAngularAccelerationRad() {
+    double angularAccelRad = (angVelRad - lastAngVelRad) / 0.02;
+    lastAngVelRad = angVelRad;
+    return angularAccelRad;
   }
 
   /**
